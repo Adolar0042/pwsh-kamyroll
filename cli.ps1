@@ -156,34 +156,6 @@ Function Get-SoftSubs($streams) {
     return $subtitle
 }
 
-Function Get-Streams($episode, $media) {
-
-    Get-Stream $episode
-
-    $streamRes = Get-M3U8Resolutions $stream.url
-    $url = Get-ResolutionUrl $streamRes
-    #Endredion Choose-Resolution
-
-    New-Item -Path "$defaultFolder\anime\$(Normalize-Name $media.title)\$($episode.episode)" -ItemType Directory -Force | Out-Null
-
-    if ($stream.hardsub_locale -eq "") {
-        $subtitle = Get-SoftSubs $streams
-
-        if ($subtitle.count -eq 0 -and $subtitle.url -ne "") {
-            Invoke-WebRequest -Uri $subtitle.url -OutFile "$defaultFolder\anime\$(Normalize-Name $media.title)\$($episode.episode)\[$($subtitle.locale)] $(Normalize-Name $episode.title).ass"
-        }
-        elseif ($subtitle.count -ne 0) {
-            foreach ($sub in $subtitle) {
-                Invoke-WebRequest -Uri $sub.url -OutFile "$defaultFolder\anime\$(Normalize-Name $media.title)\$($episode.episode)\[$($sub.locale)] $(Normalize-Name $episode.title).ass"
-            }
-        }
-    }
-    # $url is the url with chosen resolution
-    Invoke-WebRequest -UseBasicParsing –Uri $url –OutFile "$defaultFolder\anime\$(Normalize-Name $media.title)\$($episode.episode)\$(Normalize-Name $episode.title).m3u8"
-    Invoke-Item "$defaultFolder\anime\$(Normalize-Name $media.title)\$($episode.episode)"
-}
-
-
 Clear-Host
 $query = Read-Host "Search"
 if ($query.Split("/")[3] -eq "series") {
