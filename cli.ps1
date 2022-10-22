@@ -31,7 +31,7 @@ $ProgressPreference = 'SilentlyContinue'
 
 # Updater
 $gitRaw = Invoke-WebRequest -Uri "https://raw.githubusercontent.com/Adolar0042/pwsh-kamyroll/main/cli.ps1"
-if ($gitRaw.Content.Split("`n")[2].Replace("$Version= ", "") -ne $Version) {
+if ($gitRaw.Content.Split("`n")[2].Replace("$Version= ", "").Replace("""", "") -ne $Version) {
     Do {
         $ans = Read-Host "New version available! Download? [Y/N]"
     } While ($ans -notin @("Y", "y", "N", "n"))
