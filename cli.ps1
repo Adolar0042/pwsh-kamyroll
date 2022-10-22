@@ -310,11 +310,11 @@ else {
     
         if ($stream.hardsub_locale -eq "") {
             $subtitle = Get-SoftSubs $streams
-    
-            if ($subtitle.count -eq 0 -and $subtitle.url -ne "") {
+
+            if ($subtitle.count -eq 1 -and $subtitle.url -ne "") {
                 Invoke-WebRequest -Uri $subtitle.url -OutFile "$defaultFolder\anime\$(Normalize-Name $media.title)\$($episode.episode)\[$($subtitle.locale)] $(Normalize-Name $episode.title).ass"
             }
-            elseif ($subtitle.count -ne 0) {
+            elseif ($subtitle.count -gt 1 -and $subtitle.url -ne "") {
                 foreach ($sub in $subtitle) {
                     Invoke-WebRequest -Uri $sub.url -OutFile "$defaultFolder\anime\$(Normalize-Name $media.title)\$($episode.episode)\[$($sub.locale)] $(Normalize-Name $episode.title).ass"
                 }
