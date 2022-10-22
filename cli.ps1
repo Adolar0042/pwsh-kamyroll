@@ -2,6 +2,7 @@
 # Author: Adolar0042
 $Version = "1.1.1"
 
+$defaultFolder = "$env:USERPROFILE\Desktop\Kamyroll"
 <#   Default Folder
 Should contain:
 - kamyrollAPI.ps1
@@ -24,25 +25,30 @@ $defaultFolder
   |_ created_at
   |_ expires_in
 #>
-$defaultFolder = "$env:USERPROFILE\Desktop\Kamyroll"
 
 # Hide Invoke-WebRequest Progress Bar
 $ProgressPreference = 'SilentlyContinue'
 
 # Updater
 $gitRaw = Invoke-WebRequest -Uri "https://raw.githubusercontent.com/Adolar0042/pwsh-kamyroll/main/cli.ps1"
-if ($gitRaw.Content.Split("`n")[2].Replace("$Version= ", "").Replace("""", "") -ne $Version) {
-    Do {
-        $ans = Read-Host "New version available! Download? [Y/N]"
-    } While ($ans -notin @("Y", "y", "N", "n"))
-    if ($ans -in @("Y", "y")) {
-        $gitRaw = Invoke-WebRequest -Uri "https://raw.githubusercontent.com/Adolar0042/pwsh-kamyroll/main/cli.ps1"
-        $gitRaw.Content | Out-File -FilePath $PSScriptRoot\cli.ps1 -Encoding UTF8
-        Write-Host "Updated to version $($gitRaw.Content.Split("`n")[2].Replace("$Version= ", "").Replace("""", ""))" -ForegroundColor Green
-        break
+$newVersion = $gitRaw.Content.Split("`n")[2].Replace('$Version = ', "").Replace('"', "")
+$i = 0
+foreach($num in $newVersion.Split('.')){
+    # Compare each number in the version
+    $i++
+    if($num -gt $Version.Split('.')[$i - 1]){
+        Do {
+            Write-Host "Old: v$Version New: v$newVersion" -ForegroundColor Yellow
+            $ans = Read-Host "New version available! Download? [Y/N]"
+        } While ($ans -notin @("Y", "y", "N", "n"))
+        if ($ans -in @("Y", "y")) {
+            $gitRaw = Invoke-WebRequest -Uri "https://raw.githubusercontent.com/Adolar0042/pwsh-kamyroll/main/cli.ps1"
+            $gitRaw.Content | Out-File -FilePath "$PSScriptRoot\cli.ps1" -Encoding UTF8
+            Write-Host "Updated to version $newVersion" -ForegroundColor Green
+            break
+        }
     }
 }
-
 . "$defaultFolder\kamyrollAPI.ps1"
 
 $oldTitle = $Host.UI.RawUI.WindowTitle
@@ -347,3 +353,4 @@ else {
 $Host.UI.RawUI.WindowTitle = $oldTitle
 
 Remove-Variable * -ErrorAction SilentlyContinue
+
