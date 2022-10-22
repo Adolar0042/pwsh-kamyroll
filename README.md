@@ -13,6 +13,11 @@ A implementation of the Kamyroll API in powershell
 3. Open `cli.ps1` in notepad or your code editor of choice
 4. Change $defaultFolder to the folder `kamyrollAPI.ps1` is in
 
+    For example: 
+    ```Powershell
+    $defaultFolder = "C:\Kamyroll"
+    ```
+
 ![image](https://user-images.githubusercontent.com/39769465/197365873-1f73fa6f-52d7-4aa8-b6ed-1609a17c12b1.png)
 
 5. Run `cli.ps1` from anywhere you want.
