@@ -1,7 +1,31 @@
 # Kamyroll API PWSH CLI
 # Author: Adolar0042
 
-. "$env:USERPROFILE\Desktop\Kamyroll\kamyrollAPI.ps1"
+<#   Default Folder
+Should contain:
+- kamyrollAPI.ps1
+
+Structure:
+$defaultFolder 
+|_ kamyrollAPI.ps1
+|_ anime
+| |_<Anime Title>
+| | |_ <Episode Number>
+| |   |_ <Episode Title>.m3u8
+| |   |_ [<locale>] <Episode Title>.ass
+| |_ Unknown Series                 (this folder contains episodes that were downloaded via lloryhcnurC url)
+|   |_ <Episode Title>
+|     |_ <Episode Title>.m3u8
+|     |_ [<locale>] <Episode Title>.ass
+|_ token
+  |_ token_type
+  |_ access_token
+  |_ created_at
+  |_ expires_in
+#>
+$defaultFolder = "$env:USERPROFILE\Desktop\Kamyroll"
+
+. "$defaultFolder\kamyrollAPI.ps1"
 
 $oldTitle = $Host.UI.RawUI.WindowTitle
 $Host.UI.RawUI.WindowTitle = "Kamyroll CLI"
@@ -13,7 +37,6 @@ if (!(Get-InstalledModule -Name PSMenu -ErrorAction SilentlyContinue)) {
 
 # Hide Invoke-WebRequest Progress Bar
 $ProgressPreference = 'SilentlyContinue'
-
 
 Function Get-M3U8Resolutions([STRING]$m3u8Url) {
     $i = 0
@@ -27,27 +50,8 @@ Function Get-M3U8Resolutions([STRING]$m3u8Url) {
             $resolutions += $line.Split(",")[2].Split("=")[1]
         }
     }
-    
     return $resolutions
 }
-
-class MenuOption {
-    [String]$DisplayName
-    [ScriptBlock]$Script
-    
-    [String]ToString() {
-        Return $This.DisplayName
-    }
-}
-    
-function New-MenuItem([String]$DisplayName, [ScriptBlock]$Script) {
-    $MenuItem = [MenuOption]::new()
-    $MenuItem.DisplayName = $DisplayName
-    $MenuItem.Script = $Script
-    Return $MenuItem
-}
-    
-    
 
 Clear-Host
 $query = Read-Host "Search"
@@ -211,7 +215,7 @@ if ($Null -ne $episodeID) {
         }
 
         [INT]$i = 0
-        New-Item -Path "$env:USERPROFILE\Desktop\Kamyroll\anime\Unknown Series\$episodeName" -ItemType Directory -Force | Out-Null
+        New-Item -Path "$defaultFolder\anime\Unknown Series\$episodeName" -ItemType Directory -Force | Out-Null
         Clear-Host
 
         if ($stream.hardsub_locale -eq "") {
@@ -232,18 +236,18 @@ if ($Null -ne $episodeID) {
             } -MultiSelect
     
             if ($subtitle.count -eq 0 -and $subtitle.url -ne "") {
-                Invoke-WebRequest -Uri $subtitle.url -OutFile "$env:USERPROFILE\Desktop\Kamyroll\anime\Unknown Series\$episodeName\[$($subtitle.locale)] $($episodeName).ass"
+                Invoke-WebRequest -Uri $subtitle.url -OutFile "$defaultFolder\anime\Unknown Series\$episodeName\[$($subtitle.locale)] $($episodeName).ass"
             }
             elseif ($subtitle.count -ne 0) {
                 foreach ($sub in $subtitle) {
-                    Invoke-WebRequest -Uri $sub.url -OutFile "$env:USERPROFILE\Desktop\Kamyroll\anime\Unknown Series\$episodeName\[$($sub.locale)] $($episodeName).ass"
+                    Invoke-WebRequest -Uri $sub.url -OutFile "$defaultFolder\anime\Unknown Series\$episodeName\[$($sub.locale)] $($episodeName).ass"
                 }
             }
         }
         # $url is the url with chosen resolution
         # TODO: Add m3u8 to mp4
-        Invoke-WebRequest -UseBasicParsing –Uri $url –OutFile "$env:USERPROFILE\Desktop\Kamyroll\anime\Unknown Series\$episodeName\$($episode.title).m3u8"
-        Invoke-Item "$env:USERPROFILE\Desktop\Kamyroll\anime\Unknown Series\$episodeName"
+        Invoke-WebRequest -UseBasicParsing –Uri $url –OutFile "$defaultFolder\anime\Unknown Series\$episodeName\$($episode.title).m3u8"
+        Invoke-Item "$defaultFolder\anime\Unknown Series\$episodeName"
     }
     While ($true)
 }
@@ -322,7 +326,7 @@ else {
         }
 
         [INT]$i = 0
-        New-Item -Path "$env:USERPROFILE\Desktop\Kamyroll\anime\$($media.title.replace(" ", "-"))\$($episode.episode)" -ItemType Directory -Force | Out-Null
+        New-Item -Path "$defaultFolder\anime\$($media.title.replace(" ", "-"))\$($episode.episode)" -ItemType Directory -Force | Out-Null
         Clear-Host
 
         if ($stream.hardsub_locale -eq "") {
@@ -343,17 +347,17 @@ else {
             } -MultiSelect
 
             if ($subtitle.count -eq 0 -and $subtitle.url -ne "") {
-                Invoke-WebRequest -Uri $subtitle.url -OutFile "$env:USERPROFILE\Desktop\Kamyroll\anime\$($media.title.replace(" ", "-"))\$($episode.episode)\[$($subtitle.locale)] $($episode.title).ass"
+                Invoke-WebRequest -Uri $subtitle.url -OutFile "$defaultFolder\anime\$($media.title.replace(" ", "-"))\$($episode.episode)\[$($subtitle.locale)] $($episode.title).ass"
             }
             elseif ($subtitle.count -ne 0) {
                 foreach ($sub in $subtitle) {
-                    Invoke-WebRequest -Uri $sub.url -OutFile "$env:USERPROFILE\Desktop\Kamyroll\anime\$($media.title.replace(" ", "-"))\$($episode.episode)\[$($sub.locale)] $($episode.title).ass"
+                    Invoke-WebRequest -Uri $sub.url -OutFile "$defaultFolder\anime\$($media.title.replace(" ", "-"))\$($episode.episode)\[$($sub.locale)] $($episode.title).ass"
                 }
             }
         }
         # $url is the url with chosen resolution
-        Invoke-WebRequest -UseBasicParsing –Uri $url –OutFile "$env:USERPROFILE\Desktop\Kamyroll\anime\$($media.title.replace(" ", "-"))\$($episode.episode)\$($episode.title).m3u8"
-        Invoke-Item "$env:USERPROFILE\Desktop\Kamyroll\anime\$($media.title.replace(" ", "-"))\$($episode.episode)"
+        Invoke-WebRequest -UseBasicParsing –Uri $url –OutFile "$defaultFolder\anime\$($media.title.replace(" ", "-"))\$($episode.episode)\$($episode.title).m3u8"
+        Invoke-Item "$defaultFolder\anime\$($media.title.replace(" ", "-"))\$($episode.episode)"
     }
     While ($true)
 }
