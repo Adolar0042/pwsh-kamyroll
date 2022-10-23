@@ -1,6 +1,6 @@
 # Kamyroll API PWSH CLI
 # Author: Adolar0042
-$Version = "1.1.1.1"
+$Version = "1.1.1.2"
 
 $defaultFolder = "$env:USERPROFILE\Desktop\Kamyroll"
 <#   Default Folder
@@ -345,7 +345,9 @@ else {
         # $url is the url with chosen resolution
         Invoke-WebRequest -UseBasicParsing –Uri $url –OutFile "$defaultFolder\anime\$(Normalize $media.title)\$($episode.episode)\$(Normalize $episode.title).m3u8"
         Invoke-Item "$defaultFolder\anime\$(Normalize $media.title)\$($episode.episode)"
-        $error.Replace("$env:USERNAME", "<UserName>") | Out-File -FilePath "$defaultFolder\errors.txt"
+        foreach($line in $error){
+            $line.ToString().Replace($env:USERNAME, "<USERNAME>") | Out-File -Append -FilePath "$defaultFolder\errors.txt"
+        }
     }
     While ($true)
 }
