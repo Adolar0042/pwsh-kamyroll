@@ -1,6 +1,6 @@
 # Kamyroll API PWSH CLI
 # Author: Adolar0042
-$Version = "1.1.1"
+$Version = "1.1.1.1"
 
 $defaultFolder = "$env:USERPROFILE\Desktop\Kamyroll"
 <#   Default Folder
@@ -75,7 +75,7 @@ Function Get-M3U8Resolutions([STRING]$m3u8Url) {
     return $resolutions
 }
 
-Function Normalize-Name([STRING]$string) {
+Function Normalize([STRING]$string) {
     return $string.Replace("/", " ").Replace(":", " ").Replace("*", " ").Replace("?", " ").Replace("<", " ").Replace(">", " ").Replace("|", " ").Replace("""", " ")
 }
 
@@ -270,11 +270,11 @@ elseif ($result.media_type -eq "movie_listing") {
         $subtitle = Get-SoftSubs $streams
 
         if ($subtitle.count -eq 0 -and $subtitle.url -ne "") {
-            Invoke-WebRequest -Uri $subtitle.url -OutFile "$defaultFolder\anime\$(Normalize-Name $media.title)\$($episode.episode)\[$($subtitle.locale)] $(Normalize-Name $episode.title).ass"
+            Invoke-WebRequest -Uri $subtitle.url -OutFile "$defaultFolder\anime\$(Normalize $media.title)\$($episode.episode)\[$($subtitle.locale)] $(Normalize $episode.title).ass"
         }
         elseif ($subtitle.count -ne 0) {
             foreach ($sub in $subtitle) {
-                Invoke-WebRequest -Uri $sub.url -OutFile "$defaultFolder\anime\$(Normalize-Name $media.title)\$($episode.episode)\[$($sub.locale)] $(Normalize-Name $episode.title).ass"
+                Invoke-WebRequest -Uri $sub.url -OutFile "$defaultFolder\anime\$(Normalize $media.title)\$($episode.episode)\[$($sub.locale)] $(Normalize $episode.title).ass"
             }
         }
     }
@@ -293,7 +293,7 @@ if ($Null -ne $episodeID) {
     $streamRes = Get-M3U8Resolutions $stream.url
     $url = Get-ResolutionUrl $streamRes
 
-    New-Item -Path "$defaultFolder\anime\Unknown Series\$(Normalize-Name $episodeName)" -ItemType Directory -Force | Out-Null
+    New-Item -Path "$defaultFolder\anime\Unknown Series\$(Normalize $episodeName)" -ItemType Directory -Force | Out-Null
 
     if ($stream.hardsub_locale -eq "") {
         $subtitles = $streams.subtitles
@@ -303,18 +303,18 @@ if ($Null -ne $episodeID) {
         }
         $subtitle = Get-SoftSubs $streams    
         if ($subtitle.count -eq 0 -and $subtitle.url -ne "") {
-            Invoke-WebRequest -Uri $subtitle.url -OutFile "$defaultFolder\anime\Unknown Series\$(Normalize-Name $episodeName)\[$($subtitle.locale)] $(Normalize-Name $episodeName).ass"
+            Invoke-WebRequest -Uri $subtitle.url -OutFile "$defaultFolder\anime\Unknown Series\$(Normalize $episodeName)\[$($subtitle.locale)] $(Normalize $episodeName).ass"
         }
         elseif ($subtitle.count -ne 0) {
             foreach ($sub in $subtitle) {
-                Invoke-WebRequest -Uri $sub.url -OutFile "$defaultFolder\anime\Unknown Series\$(Normalize-Name $episodeName)\[$($sub.locale)] $(Normalize-Name $episodeName).ass"
+                Invoke-WebRequest -Uri $sub.url -OutFile "$defaultFolder\anime\Unknown Series\$(Normalize $episodeName)\[$($sub.locale)] $(Normalize $episodeName).ass"
             }
         }
     }
     # $url is the url with chosen resolution
     # TODO: Add m3u8 to mp4
-    Invoke-WebRequest -UseBasicParsing –Uri $url –OutFile "$defaultFolder\anime\Unknown Series\$(Normalize-Name $episodeName)\$(Normalize-Name $episode.title).m3u8"
-    Invoke-Item "$defaultFolder\anime\Unknown Series\$(Normalize-Name $episodeName)"
+    Invoke-WebRequest -UseBasicParsing –Uri $url –OutFile "$defaultFolder\anime\Unknown Series\$(Normalize $episodeName)\$(Normalize $episode.title).m3u8"
+    Invoke-Item "$defaultFolder\anime\Unknown Series\$(Normalize $episodeName)"
 }
 else {
     if ($Null -eq $media.episodes) {
@@ -328,24 +328,24 @@ else {
         $streamRes = Get-M3U8Resolutions $stream.url
         $url = Get-ResolutionUrl $streamRes
     
-        New-Item -Path "$defaultFolder\anime\$(Normalize-Name $media.title)\$($episode.episode)" -ItemType Directory -Force | Out-Null
+        New-Item -Path "$defaultFolder\anime\$(Normalize $media.title)\$($episode.episode)" -ItemType Directory -Force | Out-Null
     
         if ($stream.hardsub_locale -eq "") {
             $subtitle = Get-SoftSubs $streams
 
             if ($subtitle.count -eq 1 -and $subtitle.url -ne "") {
-                Invoke-WebRequest -Uri $subtitle.url -OutFile "$defaultFolder\anime\$(Normalize-Name $media.title)\$($episode.episode)\[$($subtitle.locale)] $(Normalize-Name $episode.title).ass"
+                Invoke-WebRequest -Uri $subtitle.url -OutFile "$defaultFolder\anime\$(Normalize $media.title)\$($episode.episode)\[$($subtitle.locale)] $(Normalize $episode.title).ass"
             }
             elseif ($subtitle.count -gt 1 -and $subtitle.url -ne "") {
                 foreach ($sub in $subtitle) {
-                    Invoke-WebRequest -Uri $sub.url -OutFile "$defaultFolder\anime\$(Normalize-Name $media.title)\$($episode.episode)\[$($sub.locale)] $(Normalize-Name $episode.title).ass"
+                    Invoke-WebRequest -Uri $sub.url -OutFile "$defaultFolder\anime\$(Normalize $media.title)\$($episode.episode)\[$($sub.locale)] $(Normalize $episode.title).ass"
                 }
             }
         }
         # $url is the url with chosen resolution
-        Invoke-WebRequest -UseBasicParsing –Uri $url –OutFile "$defaultFolder\anime\$(Normalize-Name $media.title)\$($episode.episode)\$(Normalize-Name $episode.title).m3u8"
-        Invoke-Item "$defaultFolder\anime\$(Normalize-Name $media.title)\$($episode.episode)"
-    
+        Invoke-WebRequest -UseBasicParsing –Uri $url –OutFile "$defaultFolder\anime\$(Normalize $media.title)\$($episode.episode)\$(Normalize $episode.title).m3u8"
+        Invoke-Item "$defaultFolder\anime\$(Normalize $media.title)\$($episode.episode)"
+        $error.Replace("$env:USERNAME", "<UserName>") | Out-File -FilePath "$defaultFolder\errors.txt"
     }
     While ($true)
 }
