@@ -39,14 +39,15 @@ if ($Null -ne $config) {
     foreach ($line in $config) {
         # if the line starts with #, skip it
         if (!$line.StartsWith("#") -and $line.Contains("=")) {
-            Set-Variable -Name $line.split(" = ")[0] -Value $line.split(" = ", 2)[1]
+            $name = $line.split(" = ")[0]
+            $value = $line.split(" = ")[1]
+            Set-Variable -Name $name -Value $value
         }
     }
     Write-Host "Config loaded" -ForegroundColor Green
 }
 else {
     #First time running the script
-    #       New-Item -Path "$env:USERPROFILE\.config\kamyroll" -ItemType Directory -Force | Out-Null
     $config = '# Kamyroll API PWSH CLI Config
 
 # Default folder to download to (should also contain kamyrollAPI.ps1)
@@ -100,10 +101,10 @@ subtitleFormat = [SUBTITLEFORMAT]
         if ($line.Contains('$configPath = "[CONFIGPATH]"') -and !($line.Contains("if ("))) {
             $content += '$configPath = ' + """$Path\config.config""`r`n"
         }
-        elseif($line -eq "# End") {
+        elseif ($line -eq "# End") {
             $content += $line
         }
-        else{
+        else {
             $content += $line + "`r`n"
         }
     }
@@ -387,7 +388,7 @@ if ($Null -ne $episodeID) {
     }
     # $url is the url with chosen resolution
     # TODO: Add m3u8 to mp4
-    Invoke-WebRequest -UseBasicParsing –Uri $url –OutFile "$defaultFolder\anime\Unknown Series\$(Normalize $episodeName)\$(Normalize $episode.title).m3u8"
+    Invoke-WebRequest -Uri $url -OutFile "$defaultFolder\anime\Unknown Series\$(Normalize $episodeName)\$(Normalize $episode.title).m3u8"
     Invoke-Item "$defaultFolder\anime\Unknown Series\$(Normalize $episodeName)"
 }
 else {
@@ -419,7 +420,7 @@ else {
             }
         }
         # $url is the url with chosen resolution
-        Invoke-WebRequest -UseBasicParsing –Uri $url –OutFile "$defaultFolder\anime\$(Normalize $media.title)\$($episode.episode)\$(Normalize $episode.title).m3u8"
+        Invoke-WebRequest -Uri $url -OutFile "$defaultFolder\anime\$(Normalize $media.title)\$($episode.episode)\$(Normalize $episode.title).m3u8"
         Invoke-Item "$defaultFolder\anime\$(Normalize $media.title)\$($episode.episode)"
     }
     While ($true)
