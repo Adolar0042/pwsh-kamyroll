@@ -1,6 +1,6 @@
 # Kamyroll API PWSH CLI
 # Author: Adolar0042
-$Version = "1.1.1.3"
+$Version = "1.1.1.4"
 
 $defaultFolder = "$env:USERPROFILE\Desktop\Kamyroll"
 <#   Default Folder
@@ -270,11 +270,13 @@ elseif ($result.media_type -eq "movie_listing") {
         $subtitle = Get-SoftSubs $streams
 
         if ($subtitle.count -eq 0 -and $subtitle.url -ne "") {
-            Invoke-WebRequest -Uri $subtitle.url -OutFile "$defaultFolder\anime\$(Normalize $media.title)\$($episode.episode)\$($subtitle.locale) $(Normalize $episode.title).ass"
+            $request = Invoke-WebRequest -Uri $subtitle.url
+            $request.content | Out-File -LiteralPath "$defaultFolder\anime\$(Normalize $media.title)\$($episode.episode)\[$($subtitle.locale)] $(Normalize $episode.title).ass"
         }
         elseif ($subtitle.count -ne 0) {
             foreach ($sub in $subtitle) {
-                Invoke-WebRequest -Uri $sub.url -OutFile "$defaultFolder\anime\$(Normalize $media.title)\$($episode.episode)\$($sub.locale) $(Normalize $episode.title).ass"
+                $request = Invoke-WebRequest -Uri $sub.url
+                $request.content | Out-File -LiteralPath "$defaultFolder\anime\$(Normalize $media.title)\$($episode.episode)\[$($sub.locale)] $(Normalize $episode.title).ass"
             }
         }
     }
@@ -303,11 +305,13 @@ if ($Null -ne $episodeID) {
         }
         $subtitle = Get-SoftSubs $streams    
         if ($subtitle.count -eq 0 -and $subtitle.url -ne "") {
-            Invoke-WebRequest -Uri $subtitle.url -OutFile "$defaultFolder\anime\Unknown Series\$(Normalize $episodeName)\$($subtitle.locale) $(Normalize $episodeName).ass"
+            $request = Invoke-WebRequest -Uri $subtitle.url
+            $request.content | Out-File -LiteralPath "$defaultFolder\anime\Unknown Series\$(Normalize $episodeName)\[$($subtitle.locale)] $(Normalize $episodeName).ass"
         }
         elseif ($subtitle.count -ne 0) {
             foreach ($sub in $subtitle) {
-                Invoke-WebRequest -Uri $sub.url -OutFile "$defaultFolder\anime\Unknown Series\$(Normalize $episodeName)\$($sub.locale) $(Normalize $episodeName).ass"
+                $request = Invoke-WebRequest -Uri $sub.url
+                $request.content | Out-File -LiteralPath "$defaultFolder\anime\Unknown Series\$(Normalize $episodeName)\[$($sub.locale)] $(Normalize $episodeName).ass"
             }
         }
     }
@@ -334,11 +338,13 @@ else {
             $subtitle = Get-SoftSubs $streams
 
             if ($subtitle.count -eq 1 -and $subtitle.url -ne "") {
-                Invoke-WebRequest -Uri $subtitle.url -OutFile "$defaultFolder\anime\$(Normalize $media.title)\$($episode.episode)\$($subtitle.locale) $(Normalize $episode.title).ass"
+                $request = Invoke-WebRequest -Uri $subtitle.url 
+                $request.content | Out-File -LiteralPath "$defaultFolder\anime\$(Normalize $media.title)\$($episode.episode)\[$($subtitle.locale)] $(Normalize $episode.title).ass"
             }
             elseif ($subtitle.count -gt 1 -and $subtitle.url -ne "") {
                 foreach ($sub in $subtitle) {
-                    Invoke-WebRequest -Uri $sub.url -OutFile "$defaultFolder\anime\$(Normalize $media.title)\$($episode.episode)\$($sub.locale) $(Normalize $episode.title).ass"
+                    $request = Invoke-WebRequest -Uri $sub.url 
+                    $request.content | Out-File -LiteralPath "$defaultFolder\anime\$(Normalize $media.title)\$($episode.episode)\[$($sub.locale)] $(Normalize $episode.title).ass"
                 }
             }
         }
