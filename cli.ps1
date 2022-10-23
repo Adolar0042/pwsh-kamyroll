@@ -1,6 +1,6 @@
 # Kamyroll API PWSH CLI
 # Author: Adolar0042
-$Version = "1.1.1.8"
+$Version = "1.1.2"
 $configPath = "[CONFIGPATH]"
 
 $oldTitle = $Host.UI.RawUI.WindowTitle
@@ -54,6 +54,8 @@ else {
 defaultFolder = [DEFAULTFOLDER]
 # Subtitle format (ass, vtt, srt)
 subtitleFormat = [SUBTITLEFORMAT]
+# Channel
+channel = [CHANNEL]
     '
     Clear-Host
     Write-Host "Welcome to Kamyroll CLI!`r`nThis is the first time you're running this script, so we need to set up a few things first." -ForegroundColor Green
@@ -93,6 +95,64 @@ subtitleFormat = [SUBTITLEFORMAT]
         2 { "srt" }
     }
     $config = $config.Replace("[SUBTITLEFORMAT]", $ans)
+
+    # Temp API functions
+    $Path = "$env:TEMP"
+    $apiUrl = "https://api.kamyroll.tech"
+    $deviceID = "com.service.data"
+    $deviceType = "powershellapi"
+    $accessToken = "HMbQeThWmZq4t7w"
+
+    Function Get-ApiToken ($Path) {
+        #   Token
+        # access_token
+        # token_type
+        # expires_in
+        Function New-Token {
+            $newToken = Invoke-RestMethod -Method Post -Uri "$apiUrl/auth/v1/token" -Body @{
+                "device_id"    = $deviceID
+                "device_type"  = $deviceType
+                "access_token" = $accessToken
+            }
+            New-Item -Path "$Path\token" -Name "access_token" -Value $newToken.access_token -Force
+            New-Item -Path "$Path\token" -Name "token_type" -Value $newToken.token_type -Force
+            New-Item -Path "$Path\token" -Name "expires_in" -Value $newToken.expires_in -Force
+            New-Item -Path "$Path\token" -Name "created_at" -Value $unixTimeStamp -Force
+            return $newToken
+        }
+        $date = Get-Date
+        $unixTimeStamp = ([DateTimeOffset]$date).ToUnixTimeSeconds()
+        if (Test-Path -Path "$Path\token") {
+            $expiresIn = Get-Content -Path "$Path\token\expires_in"
+            if ($unixTimeStamp -ge $expiresIn) {
+                $token = (New-Token).access_token
+            }
+            else {
+                $token = Get-Content -Path "$Path\token\access_token"
+            }
+        }
+        else {
+            $token = (New-Token).access_token
+        }
+        return $token
+    }
+    Function Platforms($Path) {
+        $token = Get-ApiToken -Path $Path
+        $tokenType = Get-Content -Path "$Path\token\token_type"
+        $res = Invoke-RestMethod -Method Get -Uri "$apiUrl/auth/v1/platforms" -Headers @{
+            "authorization" = "$tokenType $token"
+        }
+        Remove-Item -Path "$Path\token" -Force -Recurse -ErrorAction SilentlyContinue
+        return $res
+    }
+    
+    $platforms = Platforms
+    Clear-Host
+    Write-Host "On which channel do you want to use Kamyroll?`r`n" -ForegroundColor Green
+    $ans = Show-Menu -MenuItems @(
+        $platforms.items
+    )
+    $config = $config.Replace("[CHANNEL]", $ans)
     $config | Out-File -FilePath "$Path\config.config" -Encoding utf8 -Force
 
     # Rebuild script with new config path
@@ -175,10 +235,10 @@ Function Get-Episode($media) {
 Function Get-Stream($episode, [BOOLEAN]$isID = $false) {
     Write-Host "Getting streams..." -ForegroundColor Green
     if ($isID -eq $true) {
-        $streams = Streams -mediaID $episode -format $subtitleFormat
+        $streams = Streams -mediaID $episode -format $subtitleFormat -channel $channel
     }
     else {
-        $streams = Streams -mediaID $episode.id -format $subtitleFormat
+        $streams = Streams -mediaID $episode.id -format $subtitleFormat -channel $channel
         if ($Null -eq $streams.streams) {
             Write-Host "No streams found" -ForegroundColor Red
             break
@@ -262,7 +322,7 @@ elseif ($query.Split("/")[3] -eq "watch") {
 }
 else {
     Write-Host "Searching for ""$query"" ..."
-    $searchResult = Search -query $query -limit 5
+    $searchResult = Search -query $query -limit 5 -channel $channel
     [INT]$totalResults = 0
     foreach ($type in $searchResult.items) {
         foreach ($entry in $type.items) {
@@ -301,7 +361,7 @@ else {
 if (($result.media_type -eq "series") -or ($NULL -ne $seriesID)) {
     $id = if ($NULL -ne $seriesID) { $seriesID }else { $result.id }
     Write-Host "Getting seasons ..." -ForegroundColor Green
-    $seasons = Seasons -seriesID $id
+    $seasons = Seasons -seriesID $id -channel $channel
     if ($Null -eq $seasons.items) {
         Write-Host "No seasons found" -ForegroundColor Red
         break
@@ -329,7 +389,7 @@ if (($result.media_type -eq "series") -or ($NULL -ne $seriesID)) {
     Clear-Host
 }
 elseif ($result.media_type -eq "movie_listing") {
-    $media = Movies -moviesID $result.id
+    $media = Movies -moviesID $result.id -channel $channel
 
     Clear-Host
     # Get-Streams $media.items $media.items
