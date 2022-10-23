@@ -1,7 +1,7 @@
 # Kamyroll API PWSH CLI
 # Author: Adolar0042
-$Version = "1.1.1.5"
-
+$Version = "1.1.1.6"
+$configPath = "[CONFIGPATH]"
 
 $oldTitle = $Host.UI.RawUI.WindowTitle
 $Host.UI.RawUI.WindowTitle = "Kamyroll CLI"
@@ -25,7 +25,8 @@ foreach ($num in $newVersion.Split('.')) {
         } While ($ans -notin @("Y", "y", "N", "n"))
         if ($ans -in @("Y", "y")) {
             $gitRaw = Invoke-WebRequest -Uri "https://raw.githubusercontent.com/Adolar0042/pwsh-kamyroll/main/cli.ps1"
-            $gitRaw.Content | Out-File -FilePath "$PSScriptRoot\cli.ps1" -Encoding UTF8
+            $content = $gitRaw.Content.Replace("[CONFIGPATH]", $configPath)
+            $content | Out-File -FilePath "$($PSScriptRoot)\$($MyInvocation.MyCommand.Name)" -Encoding UTF8
             Write-Host "Updated to version $newVersion" -ForegroundColor Green
             break
         }
@@ -33,18 +34,19 @@ foreach ($num in $newVersion.Split('.')) {
 }
 
 # Load config.config
-$config = Get-Content -Path "$env:USERPROFILE\.config\kamyroll\config.config" -Raw
+$config = Get-Content -Path $configPath -Encoding UTF8
 if ($Null -ne $config) {
     foreach ($line in $config) {
         # if the line starts with #, skip it
         if (!$line.StartsWith("#") -and $line.Contains("=")) {
-            Set-Variable -Name $line.split(" = ")[0] -Value $line.split("=", 2)[1]
+            Set-Variable -Name $line.split(" = ")[0] -Value $line.split(" = ", 2)[1]
         }
     }
+    Write-Host "Config loaded" -ForegroundColor Green
 }
 else {
     #First time running the script
-    New-Item -Path "$env:USERPROFILE\.config\kamyroll" -ItemType Directory -Force | Out-Null
+    #       New-Item -Path "$env:USERPROFILE\.config\kamyroll" -ItemType Directory -Force | Out-Null
     $config = '# Kamyroll API PWSH CLI Config
 
 # Default folder to download to (should also contain kamyrollAPI.ps1)
@@ -84,27 +86,32 @@ subtitleFormat = [SUBTITLEFORMAT]
         "VTT - Position and style are pre-set, but formatting is not (allows for more customization)"
         "SRT - No formatting, position or style is pre-set"
     ) -ReturnIndex
-    Write-Host $ans
     $ans = switch ($ans) {
         0 { "ass" }
         1 { "vtt" }
         2 { "srt" }
     }
     $config = $config.Replace("[SUBTITLEFORMAT]", $ans)
-    $config | Out-File -FilePath "$env:USERPROFILE\.config\kamyroll\config.config" -Encoding utf8 -Force
+    $config | Out-File -FilePath "$Path\config.config" -Encoding utf8 -Force
 
-    $config = Get-Content -Path "$env:USERPROFILE\.config\kamyroll\config.config" -Encoding utf8
-    if ($Null -ne $config) {
-        foreach ($line in $config) {
-            # if the line starts with #, skip it
-            if (!$line.StartsWith("#") -and $line.Contains("=")) {
-                Set-Variable -Name $line.split(" = ")[0] -Value $line.split("=", 2)[1]
-            }
+    # Rebuild script with new config path
+    $thisScript = Get-Content "$($PSScriptRoot)\$($MyInvocation.MyCommand.Name)"
+    foreach ($line in $thisScript.Split("`r`n")) {
+        if ($line.Contains('$configPath = "[CONFIGPATH]"') -and !($line.Contains("if ("))) {
+            $content += '$configPath = ' + """$Path\config.config""`r`n"
+        }
+        elseif($line -eq "# End") {
+            $content += $line
+        }
+        else{
+            $content += $line + "`r`n"
         }
     }
+    $content | Out-File -FilePath "$($PSScriptRoot)\$($MyInvocation.MyCommand.Name)" -Encoding UTF8 -Force
 
-    Write-Host "Config file created, these settings can be changed at any time by editing`r`n   $env:USERPROFILE\.config\kamyroll`r`nPress any key to continue ..." -ForegroundColor Green
+    Write-Host "Config file created, these settings can be changed at any time by editing`r`n   $Path\config.config`r`nThe CLI needs to restart, press any key to continue ..." -ForegroundColor Green
     Read-Host | Out-Null
+    break
 }
 
 
@@ -115,6 +122,9 @@ $ProgressPreference = 'SilentlyContinue'
 if (!(Test-Path -Path "$defaultFolder\kamyrollAPI.ps1")) {
     Write-Host "kamyrollAPI.ps1 not found in $defaultFolder, downloading..." -ForegroundColor Yellow
     Invoke-WebRequest -Uri "https://raw.githubusercontent.com/Adolar0042/pwsh-kamyroll/main/kamyrollAPI.ps1" -OutFile "$defaultFolder\kamyrollAPI.ps1"
+    Do {
+        Start-Sleep -Milliseconds 10
+    }Until(Test-Path -Path "$defaultFolder\kamyrollAPI.ps1")
 }
 . "$defaultFolder\kamyrollAPI.ps1"
 
@@ -417,3 +427,4 @@ else {
 
 $Host.UI.RawUI.WindowTitle = $oldTitle
 Remove-Variable * -ErrorAction SilentlyContinue
+# End
