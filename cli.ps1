@@ -57,7 +57,7 @@ subtitleFormat = [SUBTITLEFORMAT]
     '
     Clear-Host
     Write-Host "Welcome to Kamyroll CLI!`r`nThis is the first time you're running this script, so we need to set up a few things first." -ForegroundColor Green
-    Write-Host "Please enter the path, where downloads should go to (should also contain kamyrollAPI.ps1)" -ForegroundColor Green
+    Write-Host "Please enter the path, where downloads should go into" -ForegroundColor Green
     Do { 
         $Path = Read-Host "Path"
         if (!(Test-Path -Path $Path)) {
@@ -342,15 +342,19 @@ elseif ($result.media_type -eq "movie_listing") {
 
         if ($subtitle.count -eq 0 -and $subtitle.url -ne "") {
             $request = Invoke-WebRequest -Uri $subtitle.url
-            $request.content | Out-File -LiteralPath "$defaultFolder\anime\$(Normalize $media.title)\$($episode.episode)\[$($subtitle.locale)] $(Normalize $episode.title).ass"
+            $request.content | Out-File -LiteralPath "$defaultFolder\anime\$(Normalize $media.title)\[$($subtitle.locale)] $(Normalize $media.title).ass"
         }
         elseif ($subtitle.count -ne 0) {
             foreach ($sub in $subtitle) {
                 $request = Invoke-WebRequest -Uri $sub.url
-                $request.content | Out-File -LiteralPath "$defaultFolder\anime\$(Normalize $media.title)\$($episode.episode)\[$($sub.locale)] $(Normalize $episode.title).ass"
+                $request.content | Out-File -LiteralPath "$defaultFolder\anime\$(Normalize $media.title)\[$($sub.locale)] $(Normalize $media.title).ass"
             }
         }
     }
+    # $url is the url with chosen resolution
+    Invoke-WebRequest -Uri $url -OutFile "$defaultFolder\anime\$(Normalize $media.title)\$(Normalize $media.title).m3u8"
+    Invoke-Item "$defaultFolder\anime\$(Normalize $media.title)"
+    
     break
 }
 elseif ($NULL -eq $episodeID) {
