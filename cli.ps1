@@ -1,6 +1,6 @@
 # Kamyroll API PWSH CLI
 # Author: Adolar0042
-$Version = "1.1.1.2"
+$Version = "1.1.1.3"
 
 $defaultFolder = "$env:USERPROFILE\Desktop\Kamyroll"
 <#   Default Folder
@@ -14,11 +14,11 @@ $defaultFolder
 | |_<Anime Title>
 | | |_ <Episode Number>
 | |   |_ <Episode Title>.m3u8
-| |   |_ [<locale>] <Episode Title>.ass
+| |   |_ <locale> <Episode Title>.ass
 | |_ Unknown Series                 (this folder contains episodes that were downloaded via lloryhcnurC url)
 |   |_ <Episode Title>
 |     |_ <Episode Title>.m3u8
-|     |_ [<locale>] <Episode Title>.ass
+|     |_ <locale> <Episode Title>.ass
 |_ token
   |_ token_type
   |_ access_token
@@ -270,11 +270,11 @@ elseif ($result.media_type -eq "movie_listing") {
         $subtitle = Get-SoftSubs $streams
 
         if ($subtitle.count -eq 0 -and $subtitle.url -ne "") {
-            Invoke-WebRequest -Uri $subtitle.url -OutFile "$defaultFolder\anime\$(Normalize $media.title)\$($episode.episode)\[$($subtitle.locale)] $(Normalize $episode.title).ass"
+            Invoke-WebRequest -Uri $subtitle.url -OutFile "$defaultFolder\anime\$(Normalize $media.title)\$($episode.episode)\$($subtitle.locale) $(Normalize $episode.title).ass"
         }
         elseif ($subtitle.count -ne 0) {
             foreach ($sub in $subtitle) {
-                Invoke-WebRequest -Uri $sub.url -OutFile "$defaultFolder\anime\$(Normalize $media.title)\$($episode.episode)\[$($sub.locale)] $(Normalize $episode.title).ass"
+                Invoke-WebRequest -Uri $sub.url -OutFile "$defaultFolder\anime\$(Normalize $media.title)\$($episode.episode)\$($sub.locale) $(Normalize $episode.title).ass"
             }
         }
     }
@@ -303,11 +303,11 @@ if ($Null -ne $episodeID) {
         }
         $subtitle = Get-SoftSubs $streams    
         if ($subtitle.count -eq 0 -and $subtitle.url -ne "") {
-            Invoke-WebRequest -Uri $subtitle.url -OutFile "$defaultFolder\anime\Unknown Series\$(Normalize $episodeName)\[$($subtitle.locale)] $(Normalize $episodeName).ass"
+            Invoke-WebRequest -Uri $subtitle.url -OutFile "$defaultFolder\anime\Unknown Series\$(Normalize $episodeName)\$($subtitle.locale) $(Normalize $episodeName).ass"
         }
         elseif ($subtitle.count -ne 0) {
             foreach ($sub in $subtitle) {
-                Invoke-WebRequest -Uri $sub.url -OutFile "$defaultFolder\anime\Unknown Series\$(Normalize $episodeName)\[$($sub.locale)] $(Normalize $episodeName).ass"
+                Invoke-WebRequest -Uri $sub.url -OutFile "$defaultFolder\anime\Unknown Series\$(Normalize $episodeName)\$($sub.locale) $(Normalize $episodeName).ass"
             }
         }
     }
@@ -334,20 +334,17 @@ else {
             $subtitle = Get-SoftSubs $streams
 
             if ($subtitle.count -eq 1 -and $subtitle.url -ne "") {
-                Invoke-WebRequest -Uri $subtitle.url -OutFile "$defaultFolder\anime\$(Normalize $media.title)\$($episode.episode)\[$($subtitle.locale)] $(Normalize $episode.title).ass"
+                Invoke-WebRequest -Uri $subtitle.url -OutFile "$defaultFolder\anime\$(Normalize $media.title)\$($episode.episode)\$($subtitle.locale) $(Normalize $episode.title).ass"
             }
             elseif ($subtitle.count -gt 1 -and $subtitle.url -ne "") {
                 foreach ($sub in $subtitle) {
-                    Invoke-WebRequest -Uri $sub.url -OutFile "$defaultFolder\anime\$(Normalize $media.title)\$($episode.episode)\[$($sub.locale)] $(Normalize $episode.title).ass"
+                    Invoke-WebRequest -Uri $sub.url -OutFile "$defaultFolder\anime\$(Normalize $media.title)\$($episode.episode)\$($sub.locale) $(Normalize $episode.title).ass"
                 }
             }
         }
         # $url is the url with chosen resolution
         Invoke-WebRequest -UseBasicParsing –Uri $url –OutFile "$defaultFolder\anime\$(Normalize $media.title)\$($episode.episode)\$(Normalize $episode.title).m3u8"
         Invoke-Item "$defaultFolder\anime\$(Normalize $media.title)\$($episode.episode)"
-        foreach($line in $error){
-            $line.ToString().Replace($env:USERNAME, "<USERNAME>") | Out-File -Append -FilePath "$defaultFolder\errors.txt"
-        }
     }
     While ($true)
 }
