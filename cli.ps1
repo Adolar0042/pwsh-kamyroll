@@ -1,6 +1,6 @@
 # Kamyroll API PWSH CLI
 # Author: Adolar0042
-$Version = "1.1.1.7"
+$Version = "1.1.1.8"
 $configPath = "[CONFIGPATH]"
 
 $oldTitle = $Host.UI.RawUI.WindowTitle
@@ -158,14 +158,14 @@ Function Get-Episode($media) {
         [System.Console]::SetCursorPosition(0, 0)
         [System.Console]::SetCursorPosition(0, $lastTop)
     } -MenuItemFormatter { 
-        if ($Args.episode -ne "") { $name = "[$($Args.episode)] " }
+        if ($Args.sequence_number -ne "") { $name = "[$($Args.sequence_number)] " }
         $name = if (($name + $Args.title).Length -gt ($Host.UI.RawUI.WindowSize.Width / 3 * 2 - 6)) {
                 ($name + $Args.title).Substring(0, ($Host.UI.RawUI.WindowSize.Width / 3 * 2 - 9)) + "..."
         }
         else {
             $name + $Args.title + " " * (($Host.UI.RawUI.WindowSize.Width / 3 * 2 - 6) - ($name + $Args.title).Length)
         }
-        $name
+        $name.Replace("subtitleFormat", "") #TODO: fix. I don't know why the title sometimes has "subtitleFormat" infront, but it does and it's annoying :(
     }
 
     Clear-Host
@@ -336,25 +336,26 @@ elseif ($result.media_type -eq "movie_listing") {
     $streams, $stream = Get-Stream $media.items
     $streamRes = Get-M3U8Resolutions $stream.url
     $url = Get-ResolutionUrl $streamRes
-    $subtitle = Get-SoftSubs $streams
+
+    New-Item -Path "$defaultFolder\anime\$(Normalize $media.items.title)" -ItemType Directory -Force | Out-Null
+
     if ($stream.hardsub_locale -eq "") {
         $subtitle = Get-SoftSubs $streams
 
         if ($subtitle.count -eq 0 -and $subtitle.url -ne "") {
             $request = Invoke-WebRequest -Uri $subtitle.url
-            $request.content | Out-File -LiteralPath "$defaultFolder\anime\$(Normalize $media.title)\[$($subtitle.locale)] $(Normalize $media.title).ass"
+            $request.content | Out-File -LiteralPath "$defaultFolder\anime\$(Normalize $media.items.title)\[$($subtitle.locale)] $(Normalize $media.items.title).ass"
         }
         elseif ($subtitle.count -ne 0) {
             foreach ($sub in $subtitle) {
                 $request = Invoke-WebRequest -Uri $sub.url
-                $request.content | Out-File -LiteralPath "$defaultFolder\anime\$(Normalize $media.title)\[$($sub.locale)] $(Normalize $media.title).ass"
+                $request.content | Out-File -LiteralPath "$defaultFolder\anime\$(Normalize $media.items.title)\[$($sub.locale)] $(Normalize $media.items.title).ass"
             }
         }
     }
     # $url is the url with chosen resolution
-    Invoke-WebRequest -Uri $url -OutFile "$defaultFolder\anime\$(Normalize $media.title)\$(Normalize $media.title).m3u8"
-    Invoke-Item "$defaultFolder\anime\$(Normalize $media.title)"
-    
+    Invoke-WebRequest -Uri $url -OutFile "$defaultFolder\anime\$(Normalize $media.items.title)\$(Normalize $media.items.title).m3u8"
+    Invoke-Item "$defaultFolder\anime\$(Normalize $media.items.title)"
     break
 }
 elseif ($NULL -eq $episodeID) {
