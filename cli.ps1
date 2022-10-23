@@ -1,42 +1,24 @@
 # Kamyroll API PWSH CLI
 # Author: Adolar0042
-$Version = "1.1.1.4"
+$Version = "1.1.1.5"
 
-$defaultFolder = "$env:USERPROFILE\Desktop\Kamyroll"
-<#   Default Folder
-Should contain:
-- kamyrollAPI.ps1
 
-Structure:
-$defaultFolder 
-|_ kamyrollAPI.ps1
-|_ anime
-| |_<Anime Title>
-| | |_ <Episode Number>
-| |   |_ <Episode Title>.m3u8
-| |   |_ <locale> <Episode Title>.ass
-| |_ Unknown Series                 (this folder contains episodes that were downloaded via lloryhcnurC url)
-|   |_ <Episode Title>
-|     |_ <Episode Title>.m3u8
-|     |_ <locale> <Episode Title>.ass
-|_ token
-  |_ token_type
-  |_ access_token
-  |_ created_at
-  |_ expires_in
-#>
+$oldTitle = $Host.UI.RawUI.WindowTitle
+$Host.UI.RawUI.WindowTitle = "Kamyroll CLI"
 
-# Hide Invoke-WebRequest Progress Bar
-$ProgressPreference = 'SilentlyContinue'
+if (!(Get-InstalledModule -Name PSMenu -ErrorAction SilentlyContinue)) {
+    Write-Host "Installing PSMenu Module, this is a necessary dependency of the CLI ..."
+    Install-Module PSMenu -ErrorAction Stop
+}
 
 # Updater
 $gitRaw = Invoke-WebRequest -Uri "https://raw.githubusercontent.com/Adolar0042/pwsh-kamyroll/main/cli.ps1"
 $newVersion = $gitRaw.Content.Split("`n")[2].Replace('$Version = ', "").Replace('"', "")
 $i = 0
-foreach($num in $newVersion.Split('.')){
+foreach ($num in $newVersion.Split('.')) {
     # Compare each number in the version
     $i++
-    if($num -gt $Version.Split('.')[$i - 1]){
+    if ($num -gt $Version.Split('.')[$i - 1]) {
         Do {
             Write-Host "Old: v$Version New: v$newVersion" -ForegroundColor Yellow
             $ans = Read-Host "New version available! Download? [Y/N]"
@@ -49,15 +31,93 @@ foreach($num in $newVersion.Split('.')){
         }
     }
 }
+
+# Load config.config
+$config = Get-Content -Path "$env:USERPROFILE\.config\kamyroll\config.config" -Raw
+if ($Null -ne $config) {
+    foreach ($line in $config) {
+        # if the line starts with #, skip it
+        if (!$line.StartsWith("#") -and $line.Contains("=")) {
+            Set-Variable -Name $line.split(" = ")[0] -Value $line.split("=", 2)[1]
+        }
+    }
+}
+else {
+    #First time running the script
+    New-Item -Path "$env:USERPROFILE\.config\kamyroll" -ItemType Directory -Force | Out-Null
+    $config = '# Kamyroll API PWSH CLI Config
+
+# Default folder to download to (should also contain kamyrollAPI.ps1)
+defaultFolder = [DEFAULTFOLDER]
+# Subtitle format (ass, vtt, srt)
+subtitleFormat = [SUBTITLEFORMAT]
+    '
+    Clear-Host
+    Write-Host "Welcome to Kamyroll CLI!`r`nThis is the first time you're running this script, so we need to set up a few things first." -ForegroundColor Green
+    Write-Host "Please enter the path, where downloads should go to (should also contain kamyrollAPI.ps1)" -ForegroundColor Green
+    Do { 
+        $Path = Read-Host "Path"
+        if (!(Test-Path -Path $Path)) {
+            Do {
+                if (!(Test-Path -Path $Path)) {
+                    $ans = Read-Host "The path you entered does not exist, should it be created? [Y/N]"
+                    if ($ans -in "Y", "y") {
+                        try { 
+                            New-Item -Path $Path -ItemType Directory -Force 
+                        }
+                        catch {
+                            Write-Host "Failed to create the path, please try again." -ForegroundColor Red
+                            $ans = $Null
+                        }
+                    }
+                }
+            }
+            While ($ans -notin @("Y", "y", "N", "n"))
+        }
+    }
+    Until(Test-Path -Path $Path)
+    Clear-Host
+    $config = $config.Replace("[DEFAULTFOLDER]", $Path)
+    Write-Host "What format should soft subtitles be in?`r`n" -ForegroundColor Green
+    $ans = Show-Menu -MenuItems @(
+        "ASS - Formatting, position and style are pre-set (recommended)"
+        "VTT - Position and style are pre-set, but formatting is not (allows for more customization)"
+        "SRT - No formatting, position or style is pre-set"
+    ) -ReturnIndex
+    Write-Host $ans
+    $ans = switch ($ans) {
+        0 { "ass" }
+        1 { "vtt" }
+        2 { "srt" }
+    }
+    $config = $config.Replace("[SUBTITLEFORMAT]", $ans)
+    $config | Out-File -FilePath "$env:USERPROFILE\.config\kamyroll\config.config" -Encoding utf8 -Force
+
+    $config = Get-Content -Path "$env:USERPROFILE\.config\kamyroll\config.config" -Encoding utf8
+    if ($Null -ne $config) {
+        foreach ($line in $config) {
+            # if the line starts with #, skip it
+            if (!$line.StartsWith("#") -and $line.Contains("=")) {
+                Set-Variable -Name $line.split(" = ")[0] -Value $line.split("=", 2)[1]
+            }
+        }
+    }
+
+    Write-Host "Config file created, these settings can be changed at any time by editing`r`n   $env:USERPROFILE\.config\kamyroll`r`nPress any key to continue ..." -ForegroundColor Green
+    Read-Host | Out-Null
+}
+
+
+
+# Hide Invoke-WebRequest Progress Bar
+$ProgressPreference = 'SilentlyContinue'
+
+if (!(Test-Path -Path "$defaultFolder\kamyrollAPI.ps1")) {
+    Write-Host "kamyrollAPI.ps1 not found in $defaultFolder, downloading..." -ForegroundColor Yellow
+    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/Adolar0042/pwsh-kamyroll/main/kamyrollAPI.ps1" -OutFile "$defaultFolder\kamyrollAPI.ps1"
+}
 . "$defaultFolder\kamyrollAPI.ps1"
 
-$oldTitle = $Host.UI.RawUI.WindowTitle
-$Host.UI.RawUI.WindowTitle = "Kamyroll CLI"
-
-if (!(Get-InstalledModule -Name PSMenu -ErrorAction SilentlyContinue)) {
-    Write-Host "Installing PSMenu Module, this is a necessary dependency of the CLI ..."
-    Install-Module PSMenu -ErrorAction Stop
-}
 
 
 Function Get-M3U8Resolutions([STRING]$m3u8Url) {
@@ -104,10 +164,10 @@ Function Get-Episode($media) {
 Function Get-Stream($episode, [BOOLEAN]$isID = $false) {
     Write-Host "Getting streams..." -ForegroundColor Green
     if ($isID -eq $true) {
-        $streams = Streams -mediaID $episode
+        $streams = Streams -mediaID $episode -format $subtitleFormat
     }
     else {
-        $streams = Streams -mediaID $episode.id
+        $streams = Streams -mediaID $episode.id -format $subtitleFormat
         if ($Null -eq $streams.streams) {
             Write-Host "No streams found" -ForegroundColor Red
             break
@@ -356,6 +416,4 @@ else {
 }
 
 $Host.UI.RawUI.WindowTitle = $oldTitle
-
 Remove-Variable * -ErrorAction SilentlyContinue
-
