@@ -1,6 +1,6 @@
 # Kamyroll API PWSH CLI
 # Author: Adolar0042
-$Version = "1.1.2.1"
+$Version = "1.1.2.2"
 $configPath = "[CONFIGPATH]"
 
 $oldTitle = $Host.UI.RawUI.WindowTitle
@@ -34,7 +34,7 @@ foreach ($num in $newVersion.Split('.')) {
 }
 
 # Load config.config
-$config = Get-Content -Path $configPath -Encoding UTF8
+$config = Get-Content -Path "$configPath\config.config" -Encoding UTF8
 if ($Null -ne $config) {
     foreach ($line in $config) {
         # if the line starts with #, skip it
@@ -97,7 +97,7 @@ channel = [CHANNEL]
     $config = $config.Replace("[SUBTITLEFORMAT]", $ans)
 
     # Temp API functions
-    $apiPath = "$env:TEMP"
+    $tempPath = "$env:TEMP"
     $apiUrl = "https://api.kamyroll.tech"
     $deviceID = "com.service.data"
     $deviceType = "powershellapi"
@@ -146,7 +146,7 @@ channel = [CHANNEL]
         return $res
     }
     
-    $platforms = Platforms $apiPath
+    $platforms = Platforms $tempPath
     Clear-Host
     Write-Host "On which channel do you want to use Kamyroll?`r`n" -ForegroundColor Green
     $ans = Show-Menu -MenuItems @(
@@ -235,14 +235,14 @@ Function Get-Episode($media) {
 Function Get-Stream($episode, [BOOLEAN]$isID = $false) {
     Write-Host "Getting streams..." -ForegroundColor Green
     if ($isID -eq $true) {
-        $streams = Streams -mediaID $episode -format $subtitleFormat -channel $channel
+        $streams = Streams -mediaID $episode -format $subtitleFormat -channel $channel -Path $defaultFolder
     }
     else {
-        $streams = Streams -mediaID $episode.id -format $subtitleFormat -channel $channel
-        if ($Null -eq $streams.streams) {
-            Write-Host "No streams found" -ForegroundColor Red
-            break
-        }
+        $streams = Streams -mediaID $episode.id -format $subtitleFormat -channel $channel -Path $defaultFolder
+    }
+    if ($Null -eq $streams.streams) {
+        Write-Host "No streams found" -ForegroundColor Red
+        break
     }
     Clear-Host
 
@@ -318,11 +318,10 @@ if ($query.Split("/")[3] -eq "series") {
 elseif ($query.Split("/")[3] -eq "watch") {
     Write-Host "Crunchyroll episode link detected"
     $episodeID = $query.Split("/")[4]
-    $episodeName = $query.Split("/")[5]
 }
 else {
     Write-Host "Searching for ""$query"" ..."
-    $searchResult = Search -query $query -limit 5 -channel $channel
+    $searchResult = Search -query $query -limit 5 -channel $channel -Path $defaultFolder
     [INT]$totalResults = 0
     foreach ($type in $searchResult.items) {
         foreach ($entry in $type.items) {
@@ -361,7 +360,7 @@ else {
 if (($result.media_type -eq "series") -or ($NULL -ne $seriesID)) {
     $id = if ($NULL -ne $seriesID) { $seriesID }else { $result.id }
     Write-Host "Getting seasons ..." -ForegroundColor Green
-    $seasons = Seasons -seriesID $id -channel $channel
+    $seasons = Seasons -seriesID $id -channel $channel -Path $defaultFolder
     if ($Null -eq $seasons.items) {
         Write-Host "No seasons found" -ForegroundColor Red
         break
@@ -389,7 +388,7 @@ if (($result.media_type -eq "series") -or ($NULL -ne $seriesID)) {
     Clear-Host
 }
 elseif ($result.media_type -eq "movie_listing") {
-    $media = Movies -moviesID $result.id -channel $channel
+    $media = Movies -moviesID $result.id -channel $channel -Path $defaultFolder
 
     Clear-Host
     # Get-Streams $media.items $media.items
@@ -400,8 +399,12 @@ elseif ($result.media_type -eq "movie_listing") {
     New-Item -Path "$defaultFolder\anime\$(Normalize $media.items.title)" -ItemType Directory -Force | Out-Null
 
     if ($stream.hardsub_locale -eq "") {
+        $subtitles = $streams.subtitles
+        if ($Null -eq $subtitles) {
+            Write-Host "No subtitles found" -ForegroundColor Red
+            break
+        }
         $subtitle = Get-SoftSubs $streams
-
         if ($subtitle.count -eq 0 -and $subtitle.url -ne "") {
             $request = Invoke-WebRequest -Uri $subtitle.url
             $request.content | Out-File -LiteralPath "$defaultFolder\anime\$(Normalize $media.items.title)\[$($subtitle.locale)] $(Normalize $media.items.title).ass"
@@ -427,11 +430,14 @@ elseif ($NULL -eq $episodeID) {
 Clear-Host
 
 if ($Null -ne $episodeID) {
+    Write-Host "Getting episode info ..." -ForegroundColor Green
+    $epMedia = Media -mediaID $episodeID -channel $channel -Path $defaultFolder
+    $media = Seasons -seriesID $epMedia.series_id -channel $channel -Path $defaultFolder
     $streams, $stream = Get-Stream $episodeID $true
     $streamRes = Get-M3U8Resolutions $stream.url
     $url = Get-ResolutionUrl $streamRes
 
-    New-Item -Path "$defaultFolder\anime\Unknown Series\$(Normalize $episodeName)" -ItemType Directory -Force | Out-Null
+    New-Item -Path "$defaultFolder\anime\$(Normalize $epMedia.season_title)\$($epMedia.sequence_number)" -ItemType Directory -Force | Out-Null
 
     if ($stream.hardsub_locale -eq "") {
         $subtitles = $streams.subtitles
@@ -439,22 +445,21 @@ if ($Null -ne $episodeID) {
             Write-Host "No subtitles found" -ForegroundColor Red
             break
         }
-        $subtitle = Get-SoftSubs $streams    
-        if ($subtitle.count -eq 0 -and $subtitle.url -ne "") {
-            $request = Invoke-WebRequest -Uri $subtitle.url
-            $request.content | Out-File -LiteralPath "$defaultFolder\anime\Unknown Series\$(Normalize $episodeName)\[$($subtitle.locale)] $(Normalize $episodeName).ass"
+        $subtitle = Get-SoftSubs $streams
+        if ($subtitle.count -eq 1 -and $subtitle.url -ne "") {
+            $request = Invoke-WebRequest -Uri $subtitle.url 
+            $request.content | Out-File -LiteralPath "$defaultFolder\anime\$(Normalize $epMedia.season_title)\$($epMedia.sequence_number)\[$($subtitle.locale)] $(Normalize $epMedia.title).ass"
         }
-        elseif ($subtitle.count -ne 0) {
+        elseif ($subtitle.count -gt 1 -and $subtitle.url -ne "") {
             foreach ($sub in $subtitle) {
-                $request = Invoke-WebRequest -Uri $sub.url
-                $request.content | Out-File -LiteralPath "$defaultFolder\anime\Unknown Series\$(Normalize $episodeName)\[$($sub.locale)] $(Normalize $episodeName).ass"
+                $request = Invoke-WebRequest -Uri $sub.url 
+                $request.content | Out-File -LiteralPath "$defaultFolder\anime\$(Normalize $epMedia.season_title)\$($epMedia.sequence_number)\[$($sub.locale)] $(Normalize $epMedia.title).ass"
             }
         }
     }
     # $url is the url with chosen resolution
-    # TODO: Add m3u8 to mp4
-    Invoke-WebRequest -Uri $url -OutFile "$defaultFolder\anime\Unknown Series\$(Normalize $episodeName)\$(Normalize $episode.title).m3u8"
-    Invoke-Item "$defaultFolder\anime\Unknown Series\$(Normalize $episodeName)"
+    Invoke-WebRequest -Uri $url -OutFile "$defaultFolder\anime\$(Normalize $epMedia.season_title)\$($epMedia.sequence_number)\$(Normalize $epMedia.title).m3u8"
+    Invoke-Item "$defaultFolder\anime\$(Normalize $epMedia.season_title)\$($epMedia.sequence_number)"
 }
 else {
     if ($Null -eq $media.episodes) {
@@ -468,25 +473,29 @@ else {
         $streamRes = Get-M3U8Resolutions $stream.url
         $url = Get-ResolutionUrl $streamRes
     
-        New-Item -Path "$defaultFolder\anime\$(Normalize $media.title)\$($episode.episode)" -ItemType Directory -Force | Out-Null
+        New-Item -Path "$defaultFolder\anime\$(Normalize $media.title)\$($episode.sequence_number)" -ItemType Directory -Force | Out-Null
     
         if ($stream.hardsub_locale -eq "") {
+            $subtitles = $streams.subtitles
+            if ($Null -eq $subtitles) {
+                Write-Host "No subtitles found" -ForegroundColor Red
+                break
+            }
             $subtitle = Get-SoftSubs $streams
-
             if ($subtitle.count -eq 1 -and $subtitle.url -ne "") {
                 $request = Invoke-WebRequest -Uri $subtitle.url 
-                $request.content | Out-File -LiteralPath "$defaultFolder\anime\$(Normalize $media.title)\$($episode.episode)\[$($subtitle.locale)] $(Normalize $episode.title).ass"
+                $request.content | Out-File -LiteralPath "$defaultFolder\anime\$(Normalize $media.title)\$($episode.sequence_number)\[$($subtitle.locale)] $(Normalize $episode.title).ass"
             }
             elseif ($subtitle.count -gt 1 -and $subtitle.url -ne "") {
                 foreach ($sub in $subtitle) {
                     $request = Invoke-WebRequest -Uri $sub.url 
-                    $request.content | Out-File -LiteralPath "$defaultFolder\anime\$(Normalize $media.title)\$($episode.episode)\[$($sub.locale)] $(Normalize $episode.title).ass"
+                    $request.content | Out-File -LiteralPath "$defaultFolder\anime\$(Normalize $media.title)\$($episode.sequence_number)\[$($sub.locale)] $(Normalize $episode.title).ass"
                 }
             }
         }
         # $url is the url with chosen resolution
-        Invoke-WebRequest -Uri $url -OutFile "$defaultFolder\anime\$(Normalize $media.title)\$($episode.episode)\$(Normalize $episode.title).m3u8"
-        Invoke-Item "$defaultFolder\anime\$(Normalize $media.title)\$($episode.episode)"
+        Invoke-WebRequest -Uri $url -OutFile "$defaultFolder\anime\$(Normalize $media.title)\$($episode.sequence_number)\$(Normalize $episode.title).m3u8"
+        Invoke-Item "$defaultFolder\anime\$(Normalize $media.title)\$($episode.sequence_number)"
     }
     While ($true)
 }
