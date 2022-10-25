@@ -1,6 +1,6 @@
 # Kamyroll API PWSH CLI
 # Author: Adolar0042
-$Version = "1.1.2"
+$Version = "1.1.2.1"
 $configPath = "[CONFIGPATH]"
 
 $oldTitle = $Host.UI.RawUI.WindowTitle
@@ -97,7 +97,7 @@ channel = [CHANNEL]
     $config = $config.Replace("[SUBTITLEFORMAT]", $ans)
 
     # Temp API functions
-    $Path = "$env:TEMP"
+    $apiPath = "$env:TEMP"
     $apiUrl = "https://api.kamyroll.tech"
     $deviceID = "com.service.data"
     $deviceType = "powershellapi"
@@ -146,7 +146,7 @@ channel = [CHANNEL]
         return $res
     }
     
-    $platforms = Platforms
+    $platforms = Platforms $apiPath
     Clear-Host
     Write-Host "On which channel do you want to use Kamyroll?`r`n" -ForegroundColor Green
     $ans = Show-Menu -MenuItems @(
