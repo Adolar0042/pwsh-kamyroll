@@ -1,6 +1,6 @@
 # Kamyroll API PWSH CLI
 # Author: Adolar0042
-$Version = "1.1.2.2"
+$Version = "1.1.2.3"
 $configPath = "[CONFIGPATH]"
 
 $oldTitle = $Host.UI.RawUI.WindowTitle
@@ -421,8 +421,12 @@ elseif ($result.media_type -eq "movie_listing") {
     Invoke-Item "$defaultFolder\anime\$(Normalize $media.items.title)"
     break
 }
-elseif ($NULL -eq $episodeID) {
-    Write-Host "Media type not supported. $($result.media_type) | $($result)" -ForegroundColor Red
+elseif ($NULL -eq $episodeID -and !($result.media_type -in @("series", "movie_listing"))) {
+    Write-Host "Media type not supported. $($result.media_type)`r`nFurther information about search result: $($result)" -ForegroundColor Red
+    break
+}
+else {
+    Write-Host "No Results Found" -ForegroundColor Red
     break
 }
 
