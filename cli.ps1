@@ -1,6 +1,6 @@
 # Kamyroll API PWSH CLI
 # Author: Adolar0042
-$Version = "1.1.2.3"
+$Version = "1.1.2.4"
 $configPath = "[CONFIGPATH]"
 
 $oldTitle = $Host.UI.RawUI.WindowTitle
@@ -159,7 +159,7 @@ channel = [CHANNEL]
     $thisScript = Get-Content "$($PSScriptRoot)\$($MyInvocation.MyCommand.Name)"
     foreach ($line in $thisScript.Split("`r`n")) {
         if ($line.Contains('$configPath = "[CONFIGPATH]"') -and !($line.Contains("if ("))) {
-            $content += '$configPath = ' + """$Path\config.config""`r`n"
+            $content += '$configPath = ' + """$Path""`r`n"
         }
         elseif ($line -eq "# End") {
             $content += $line
