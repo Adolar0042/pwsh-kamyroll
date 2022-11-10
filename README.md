@@ -1,6 +1,6 @@
 > **Warning**
 > 
-> This has been more or less replaced by [Kamyroll Taurin](https://github.com/kamyroll/Kamyroll-Tauri), a GUI application for the Kamyroll API.
+> This has been more or less replaced by [Kamyroll Tauri](https://github.com/kamyroll/Kamyroll-Tauri), a GUI application for the Kamyroll API.
 
 # pwsh-kamyroll
 A implementation of the Kamyroll API in powershell
