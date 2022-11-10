@@ -1,6 +1,6 @@
 > **Warning**
 > 
-> This is more or less deprecated, should still work, but I recommend using [Kamyroll Taurin](https://github.com/kamyroll/Kamyroll-Tauri) instead as it features an entire gui experience.
+> This has been more or less replaced by [Kamyroll Taurin](https://github.com/kamyroll/Kamyroll-Tauri), a GUI application for the Kamyroll API.
 
 # pwsh-kamyroll
 A implementation of the Kamyroll API in powershell
